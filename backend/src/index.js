@@ -26,6 +26,7 @@ app.use('/api/predictions', require('./routes/predictions'));
 app.use('/api/matches', require('./routes/matches'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/bot-predictions', require('./routes/botpredictions'));
 
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);

@@ -82,9 +82,9 @@ CREATE TABLE bot_predictions (
 -- Vue SQL : Le classement en temps réel (Leaderboard)
 CREATE VIEW leaderboard AS
 SELECT u.id   AS user_id,
-       u.username,
-       COUNT(p.points_awarded)        AS matches_scored,
-       COALESCE(SUM(p.points_awarded), 0) AS total_points
+    u.username,
+    COUNT(p.points_awarded)        AS matches_scored,
+    COALESCE(SUM(p.points_awarded), 0) AS total_points
 FROM users u
 LEFT JOIN predictions p ON p.user_id = u.id
 GROUP BY u.id, u.username
