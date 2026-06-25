@@ -1,22 +1,33 @@
 {
-  "name": "backend",
+  "name": "wcpredictor",
   "version": "1.0.0",
-  "description": "",
+  "description": "Application web de pronostics sur la Coupe du monde 2026 : pronostics entre\r joueurs, statistiques scrapées (FBref) et un bot de prédiction (modèle Poisson).",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "dev": "nodemon src/index.js",
+  "start": "node src/index.js"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baubiez/WCPredictor.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/baubiez/WCPredictor/issues"
+  },
+  "homepage": "https://github.com/baubiez/WCPredictor#readme",
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
