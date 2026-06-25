@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { API, authFetch } from '../config.js';
+import { useLang } from '../LanguageContext.jsx';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [message, setMessage] = useState({ text: '', isError: false });
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,11 +31,11 @@ export default function Login() {
     <div className="max-w-md mx-auto mt-12">
       <div className="card p-8">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>Se connecter</h2>
+          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>{t('login.title')}</h2>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Pas encore de compte ?{' '}
+            {t('login.no_account')}{' '}
             <Link to="/register" style={{ color: 'var(--accent)' }} className="font-semibold hover:underline">
-              S'inscrire
+              {t('login.link_register')}
             </Link>
           </p>
         </div>
@@ -51,7 +53,7 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Adresse Email
+              {t('login.email')}
             </label>
             <input
               type="email"
@@ -63,7 +65,7 @@ export default function Login() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Mot de passe
+              {t('login.password')}
             </label>
             <input
               type="password"
@@ -74,7 +76,7 @@ export default function Login() {
             />
           </div>
           <button type="submit" className="btn btn-primary w-full py-2.5 mt-2">
-            Se connecter
+            {t('login.submit')}
           </button>
         </form>
       </div>

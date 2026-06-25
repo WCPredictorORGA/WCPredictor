@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API, authFetch } from '../config.js';
+import { useLang } from '../LanguageContext.jsx';
 
 export default function Register() {
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [message, setMessage] = useState({ text: '', isError: false });
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,11 +31,11 @@ export default function Register() {
     <div className="max-w-md mx-auto mt-12">
       <div className="card p-8">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>Créer un compte</h2>
+          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>{t('register.title')}</h2>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Déjà inscrit ?{' '}
+            {t('register.has_account')}{' '}
             <Link to="/login" style={{ color: 'var(--accent)' }} className="font-semibold hover:underline">
-              Se connecter
+              {t('register.link_login')}
             </Link>
           </p>
         </div>
@@ -51,7 +53,7 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Nom d'utilisateur
+              {t('register.username')}
             </label>
             <input
               type="text"
@@ -63,7 +65,7 @@ export default function Register() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Adresse Email
+              {t('register.email')}
             </label>
             <input
               type="email"
@@ -75,7 +77,7 @@ export default function Register() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Mot de passe
+              {t('register.password')}
             </label>
             <input
               type="password"
@@ -86,7 +88,7 @@ export default function Register() {
             />
           </div>
           <button type="submit" className="btn btn-primary w-full py-2.5 mt-2">
-            S'inscrire
+            {t('register.submit')}
           </button>
         </form>
       </div>

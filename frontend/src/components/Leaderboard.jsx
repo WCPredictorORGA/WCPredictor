@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API } from '../config.js';
+import { useLang } from '../LanguageContext.jsx';
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
@@ -9,6 +10,7 @@ export default function Leaderboard() {
   const [error, setError] = useState(null);
 
   const currentUser = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
+  const { t } = useLang();
 
   useEffect(() => {
     fetch(`${API}/api/leaderboard`)
@@ -21,10 +23,8 @@ export default function Leaderboard() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-black" style={{ color: 'var(--text)' }}>
-          Classement
-        </h2>
-        <p className="mt-2" style={{ color: 'var(--text-muted)' }}>Mesurez-vous aux autres pronostiqueurs</p>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--text)' }}>{t('leaderboard.title')}</h2>
+        <p className="mt-2" style={{ color: 'var(--text-muted)' }}>{t('leaderboard.subtitle')}</p>
       </div>
 
       <div className="card overflow-hidden">
@@ -39,10 +39,10 @@ export default function Leaderboard() {
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs font-bold uppercase tracking-wider border-b" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--bg-input)' }}>
-                <th className="px-5 py-3 w-16 text-center">Rang</th>
-                <th className="px-5 py-3">Joueur</th>
-                <th className="px-5 py-3 text-center w-28">Points</th>
-                <th className="px-5 py-3 text-center w-36 hidden md:table-cell">Matchs scorés</th>
+                <th className="px-5 py-3 w-16 text-center">{t('leaderboard.col.rank')}</th>
+                <th className="px-5 py-3">{t('leaderboard.col.player')}</th>
+                <th className="px-5 py-3 text-center w-28">{t('leaderboard.col.points')}</th>
+                <th className="px-5 py-3 text-center w-36 hidden md:table-cell">{t('leaderboard.col.scored')}</th>
               </tr>
             </thead>
             <tbody>
@@ -71,7 +71,7 @@ export default function Leaderboard() {
                       {row.username}
                       {isMe && (
                         <span className="ml-2 text-xs font-normal px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-glow)', color: 'var(--accent)' }}>
-                          vous
+                          {t('leaderboard.you')}
                         </span>
                       )}
                     </td>

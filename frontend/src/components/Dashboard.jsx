@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { API, authFetch } from '../config.js';
+import { useLang } from '../LanguageContext.jsx';
 
 const badgeClass = (pts) => {
   if (pts === 3) return 'badge-exact';
@@ -18,6 +19,7 @@ const badgeLabel = (p) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return { username: 'Joueur' }; } })();
+  const { t } = useLang();
 
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,21 +48,17 @@ export default function Dashboard() {
       {/* Header */}
       <div className="card p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>Tableau de bord</h2>
+          <h2 className="text-2xl font-black" style={{ color: 'var(--text)' }}>{t('dashboard.title')}</h2>
           <p className="mt-0.5 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Connecté en tant que <span style={{ color: 'var(--accent)' }} className="font-bold">{user.username}</span>
+            {t('dashboard.connected_as')} <span style={{ color: 'var(--accent)' }} className="font-bold">{user.username}</span>
           </p>
         </div>
         <div className="flex gap-3">
-          <Link
-            to="/matches"
-            state={{ statusFilter: 'scheduled' }}
-            className="btn btn-primary text-sm px-4 py-2"
-          >
-            + Pronostiquer
+          <Link to="/matches" state={{ statusFilter: 'scheduled' }} className="btn btn-primary text-sm px-4 py-2">
+            {t('dashboard.btn.predict')}
           </Link>
           <button onClick={handleLogout} className="btn btn-danger">
-            Déconnexion
+            {t('dashboard.btn.logout')}
           </button>
         </div>
       </div>
@@ -68,9 +66,9 @@ export default function Dashboard() {
       {/* Résumé */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { val: totalPoints, label: 'Points totaux',  color: 'var(--accent)' },
-          { val: exact,       label: 'Scores exacts',  color: '#F5B705' },
-          { val: partial,     label: 'Bons résultats', color: '#22c55e' },
+          { val: totalPoints, label: t('dashboard.stat.points'),  color: 'var(--accent)' },
+          { val: exact,       label: t('dashboard.stat.exact'),   color: '#F5B705' },
+          { val: partial,     label: t('dashboard.stat.partial'), color: '#22c55e' },
         ].map((s) => (
           <div key={s.label} className="card p-5 text-center">
             <p className="text-4xl font-black" style={{ color: s.color }}>{s.val}</p>
@@ -81,21 +79,17 @@ export default function Dashboard() {
 
       {/* Pronostics */}
       <div className="card p-6">
-        <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text)' }}>Mes pronostics</h3>
+        <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text)' }}>{t('dashboard.predictions.title')}</h3>
 
         {loading && (
-          <p className="text-center py-10" style={{ color: 'var(--text-muted)' }}>Chargement…</p>
+          <p className="text-center py-10" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
         )}
 
         {!loading && predictions.length === 0 && (
           <div className="text-center py-10">
-            <p style={{ color: 'var(--text-muted)' }}>Aucun pronostic enregistré pour l'instant.</p>
-            <Link
-              to="/matches"
-              state={{ statusFilter: 'scheduled' }}
-              className="btn btn-primary inline-flex mt-5 px-6 py-2"
-            >
-              Pronostiquer maintenant
+            <p style={{ color: 'var(--text-muted)' }}>{t('dashboard.predictions.empty')}</p>
+            <Link to="/matches" state={{ statusFilter: 'scheduled' }} className="btn btn-primary inline-flex mt-5 px-6 py-2">
+              {t('dashboard.predictions.cta')}
             </Link>
           </div>
         )}
@@ -120,12 +114,12 @@ export default function Dashboard() {
                 </div>
 
                 <span className="text-sm shrink-0" style={{ color: 'var(--text-muted)' }}>
-                  Pronostic : <strong style={{ color: 'var(--accent)' }}>{p.pred_home}–{p.pred_away}</strong>
+                  {t('dashboard.pred.label')} <strong style={{ color: 'var(--accent)' }}>{p.pred_home}–{p.pred_away}</strong>
                 </span>
 
                 {p.status === 'finished' && (
                   <span className="text-sm shrink-0" style={{ color: 'var(--text-muted)' }}>
-                    Résultat : <strong style={{ color: 'var(--text)' }}>{p.home_score}–{p.away_score}</strong>
+                    {t('dashboard.result.label')} <strong style={{ color: 'var(--text)' }}>{p.home_score}–{p.away_score}</strong>
                   </span>
                 )}
 
