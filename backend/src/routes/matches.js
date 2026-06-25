@@ -5,9 +5,25 @@ const { scorePredictions } = require('../scoring');
 
 const router = express.Router();
 
-// Liste des matchs (public)
 router.get('/', async (req, res) => {
-    try {
+const { group, stage, status, team, sort, order } = req.query;
+
+const conditions = [];
+const params = [];
+
+if (group)  { params.push(group);          conditions.push(`m.group_letter = $${params.length}`); }
+if (stage)  { params.push(stage);          conditions.push(`m.stage = $${params.length}`); }
+if (status) { params.push(status);         conditions.push(`m.status = $${params.length}`); }
+if (team)   { params.push(`%${team}%`);     conditions.push(`(ht.name ILIKE $${params.length} OR at.name ILIKE $${params.length})`); }
+
+const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+// tri sécurisé : on n'autorise que des colonnes connues (liste blanche)
+const sortable = { date: 'm.match_datetime', group: 'm.group_letter' };
+const sortCol = sortable[sort] || 'm.match_datetime';
+const sortDir = order === 'desc' ? 'DESC' : 'ASC';
+
+try {
     const result = await pool.query(
     `SELECT m.id, ht.name AS home_team, at.name AS away_team,
             m.match_datetime, m.status, m.home_score, m.away_score,
@@ -15,7 +31,9 @@ router.get('/', async (req, res) => {
     FROM matches m
     JOIN teams ht ON ht.id = m.home_team_id
     JOIN teams at ON at.id = m.away_team_id
-    ORDER BY m.match_datetime`
+    ${where}
+    ORDER BY ${sortCol} ${sortDir}`,
+    params
     );
     res.json({ matches: result.rows });
 } catch (err) {
