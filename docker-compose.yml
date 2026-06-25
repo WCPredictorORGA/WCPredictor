@@ -40,6 +40,18 @@ services:
       - ./frontend:/app
       - /app/node_modules   # préserve les node_modules du build
 
+  # Frontend PRODUCTION — docker compose --profile prod up frontend-prod
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    container_name: wcp_frontend_prod
+    ports: ["80:80"]
+    depends_on: [backend]
+    profiles: ["prod"]
+
   # Scraper FBref — lancé manuellement : docker compose run --rm scraper
   scraper:
     build: ./scraper

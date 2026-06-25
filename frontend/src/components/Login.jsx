@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API } from '../config.js';
+import { API, authFetch } from '../config.js';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -12,19 +12,15 @@ export default function Login() {
     setMessage({ text: '', isError: false });
 
     try {
-      const response = await fetch(`${API}/api/auth/login`, {
+      const response = await authFetch(`${API}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Identifiants incorrects.');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Identifiants incorrects.');
-      }
-
-      localStorage.setItem('token', data.token);
+      // Stocke uniquement les infos d'affichage (pas le token — il est dans le cookie httpOnly)
       localStorage.setItem('user', JSON.stringify(data.user));
 
       navigate('/matches');

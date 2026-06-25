@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { API } from '../config.js';
+import { API, authFetch } from '../config.js';
 
 export default function Admin() {
   const navigate = useNavigate();
   const user = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
-  const token = localStorage.getItem('token');
 
   const [matches, setMatches] = useState([]);
   const [scores, setScores] = useState({});   // { [matchId]: { home: '', away: '' } }
@@ -40,12 +39,8 @@ export default function Admin() {
     if (s.home === '' || s.away === '') return;
     setSaving((prev) => ({ ...prev, [matchId]: true }));
     try {
-      const res = await fetch(`${API}/api/matches/${matchId}/result`, {
+      const res = await authFetch(`${API}/api/matches/${matchId}/result`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ home_score: Number(s.home), away_score: Number(s.away) }),
       });
       const data = await res.json();

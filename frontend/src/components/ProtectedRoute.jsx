@@ -1,14 +1,9 @@
 import { Navigate } from 'react-router-dom';
 
 export default function ProtectedRoute({ children }) {
-  // On cherche le token dans le stockage du navigateur
-  const token = localStorage.getItem('token');
-
-  // S'il n'y a pas de token, on redirige vers /login
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Si le token est là, on laisse passer et on affiche le composant enfant
+  // Le token est en cookie httpOnly (invisible au JS).
+  // On vérifie la présence des infos utilisateur stockées lors du login.
+  const user = localStorage.getItem('user');
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 }

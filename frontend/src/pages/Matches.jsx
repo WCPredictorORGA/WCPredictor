@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { API } from '../config.js';
+import { API, authFetch } from '../config.js';
 
 const STAGE_LABEL = {
   group: 'Phase de groupes',
@@ -36,7 +36,6 @@ export default function Matches() {
   const { state } = useLocation();
   const [groupFilter, setGroupFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(state?.statusFilter ?? 'all');
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     loadMatches();
@@ -67,11 +66,8 @@ export default function Matches() {
   };
 
   const loadPredictions = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API}/api/predictions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch(`${API}/api/predictions`);
       const data = await res.json();
       const predMap = {};
       const inputMap = {};
@@ -103,12 +99,8 @@ export default function Matches() {
     if (inp.home === '' || inp.away === '') return;
     setSaving((prev) => ({ ...prev, [matchId]: true }));
     try {
-      const res = await fetch(`${API}/api/predictions`, {
+      const res = await authFetch(`${API}/api/predictions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           match_id: matchId,
           pred_home: Number(inp.home),

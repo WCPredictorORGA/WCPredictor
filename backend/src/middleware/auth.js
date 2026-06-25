@@ -1,20 +1,21 @@
 const jwt = require('jsonwebtoken');
 
 function authenticate(req, res, next) {
-    const header = req.headers.authorization;
+    // Priorité au cookie httpOnly, fallback sur Authorization header (clients API)
+    const token = req.cookies?.token
+        || (req.headers.authorization?.startsWith('Bearer ')
+            ? req.headers.authorization.split(' ')[1]
+            : null);
 
-    if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token manquant' });
+    if (!token) {
+        return res.status(401).json({ error: 'Token manquant' });
     }
 
-    const token = header.split(' ')[1];
-
     try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;          // on attache l'utilisateur à la requête
-    next();                      // on laisse passer vers la vraie route
-    } catch (err) {
-    return res.status(401).json({ error: 'Token invalide' });
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Token invalide' });
     }
 }
 

@@ -9,7 +9,7 @@ import Stats from './pages/Stats';
 import Admin from './pages/Admin';
 
 function Home() {
-  const isLoggedIn = !!localStorage.getItem('token');
+  const isLoggedIn = !!localStorage.getItem('user');
   if (isLoggedIn) return <Navigate to="/matches" replace />;
 
   return (
@@ -76,7 +76,7 @@ function Home() {
 }
 
 function NavBar() {
-  const isLoggedIn = !!localStorage.getItem('token');
+  const isLoggedIn = !!localStorage.getItem('user');
   const location = useLocation();
   const user = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
 

@@ -1,29 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
-import { API } from '../config.js';
+import { API, authFetch } from '../config.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : { username: 'Joueur' };
-  const token = localStorage.getItem('token');
 
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/predictions`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    authFetch(`${API}/api/predictions`)
       .then((r) => r.json())
       .then((data) => setPredictions(data.predictions || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await authFetch(`${API}/api/auth/logout`, { method: 'POST' }).catch(() => {});
     localStorage.removeItem('user');
     navigate('/');
     window.location.reload();
