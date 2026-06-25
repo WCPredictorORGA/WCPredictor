@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import Leaderboard from './components/Leaderboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -19,7 +20,10 @@ export default function App() {
             <div className="space-x-4">
               {isLoggedIn ? (
                 // Menu affiché si connecté
-                <Link to="/dashboard" className="hover:text-blue-300 transition">Mon Tableau de Bord</Link>
+                <>
+                  <Link to="/leaderboard" className="hover:text-blue-300 transition">Classement</Link>
+                  <Link to="/dashboard" className="hover:text-blue-300 transition">Mon Tableau de Bord</Link>
+                </>
               ) : (
                 // Menu affiché si déconnecté
                 <>
@@ -47,6 +51,11 @@ export default function App() {
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/leaderboard" element={
+              <ProtectedRoute>
+                <Leaderboard />
               </ProtectedRoute>
             } />
           </Routes>
