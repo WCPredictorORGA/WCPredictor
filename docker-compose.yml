@@ -31,20 +31,21 @@ services:
     ports: ["5173:5173"]
     depends_on: [backend]
 
-  scraper:
-    build: ./scraper
-    container_name: wcp_scraper
-    env_file: .env
-    depends_on:
-      db: { condition: service_healthy }
-
-  ai-service:
-    build: ./ai-service
-    container_name: wcp_ai
-    env_file: .env
-    ports: ["8000:8000"]
-    depends_on:
-      db: { condition: service_healthy }
+# Services Python mis en pause le temps que François crée les fichiers
+#  scraper:
+#    build: ./scraper
+#    container_name: wcp_scraper
+#    env_file: .env
+#    depends_on:
+#      db: { condition: service_healthy }
+#
+#  ai-service:
+#    build: ./ai-service
+#    container_name: wcp_ai
+#    env_file: .env
+#    ports: ["8000:8000"]
+#    depends_on:
+#      db: { condition: service_healthy }
 
 volumes:
   pgdata:
