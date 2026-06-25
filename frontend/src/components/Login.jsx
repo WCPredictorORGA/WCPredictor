@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [message, setMessage] = useState({ text: '', isError: false });
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,15 +23,11 @@ export default function Login() {
         throw new Error(data.error || 'Identifiants incorrects.');
       }
 
-      // ASTUCE : Sauvegarder le token JWT renvoyé dans le LocalStorage du navigateur
       localStorage.setItem('token', data.token);
-      // Optionnel : stocker aussi les infos basiques de l'utilisateur (nom, rôle)
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      setMessage({ text: `Bienvenue, ${data.user.username} ! Connexion réussie.`, isError: false });
-      
-      // Ici, on pourra rediriger l'utilisateur vers le tableau de bord principal
-      window.location.reload(); // Recharge temporairement pour mettre à jour l'état global
+      navigate('/matches');
+      window.location.reload();
     } catch (err) {
       setMessage({ text: err.message, isError: true });
     }
@@ -38,7 +36,7 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-slate-800 rounded-lg shadow-xl text-white">
       <h2 className="text-2xl font-bold mb-6 text-center">Se connecter</h2>
-      
+
       {message.text && (
         <div className={`p-3 rounded mb-4 text-sm ${message.isError ? 'bg-red-600' : 'bg-green-600'}`}>
           {message.text}

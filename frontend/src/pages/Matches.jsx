@@ -32,6 +32,8 @@ export default function Matches() {
   const [inputs, setInputs] = useState({});
   const [saving, setSaving] = useState({});
   const [flash, setFlash] = useState({});
+  const [groupFilter, setGroupFilter] = useState(null);   // null = tous les groupes
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'scheduled' | 'finished'
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -134,17 +136,70 @@ export default function Matches() {
     return 'bg-slate-700 text-slate-300';
   };
 
-  const grouped = matches.reduce((acc, m) => {
+  const groups = [...new Set(matches.map((m) => m.group_letter).filter(Boolean))].sort();
+
+  const visibleMatches = matches.filter((m) => {
+    if (groupFilter && m.group_letter !== groupFilter) return false;
+    if (statusFilter === 'scheduled' && m.status !== 'scheduled') return false;
+    if (statusFilter === 'finished' && m.status !== 'finished') return false;
+    return true;
+  });
+
+  const grouped = visibleMatches.reduce((acc, m) => {
     if (!acc[m.stage]) acc[m.stage] = [];
     acc[m.stage].push(m);
     return acc;
   }, {});
 
+  const btnGroup = (val, label) => (
+    <button
+      key={val}
+      onClick={() => setGroupFilter(val === groupFilter ? null : val)}
+      className={`px-3 py-1 rounded text-sm font-semibold transition ${
+        groupFilter === val
+          ? 'bg-blue-600 text-white'
+          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  const btnStatus = (val, label) => (
+    <button
+      key={val}
+      onClick={() => setStatusFilter(val)}
+      className={`px-4 py-1.5 rounded text-sm font-semibold transition ${
+        statusFilter === val
+          ? 'bg-slate-200 text-slate-900'
+          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="max-w-4xl mx-auto mt-6">
-      <div className="mb-8 text-center">
+      <div className="mb-6 text-center">
         <h2 className="text-3xl font-bold text-blue-400">Matchs &amp; Pronostics</h2>
         <p className="text-slate-400 mt-2">Entrez vos scores prédits avant le coup d'envoi.</p>
+      </div>
+
+      {/* Filtres */}
+      <div className="bg-slate-800 rounded-lg p-4 mb-6 space-y-3">
+        {/* Filtre statut */}
+        <div className="flex gap-2 flex-wrap">
+          {btnStatus('all', 'Tous')}
+          {btnStatus('scheduled', 'À venir')}
+          {btnStatus('finished', 'Terminés')}
+        </div>
+        {/* Filtre groupe */}
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <span className="text-slate-400 text-xs mr-1">Groupe :</span>
+          {btnGroup(null, 'Tous')}
+          {groups.map((g) => btnGroup(g, g))}
+        </div>
       </div>
 
       {STAGE_ORDER.filter((s) => grouped[s]).map((stage) => (
@@ -274,8 +329,10 @@ export default function Matches() {
         </div>
       ))}
 
-      {matches.length === 0 && (
-        <p className="text-center text-slate-400 mt-20">Aucun match disponible pour l'instant.</p>
+      {visibleMatches.length === 0 && (
+        <p className="text-center text-slate-400 mt-20">
+          {matches.length === 0 ? 'Aucun match disponible.' : 'Aucun match pour ces filtres.'}
+        </p>
       )}
     </div>
   );
