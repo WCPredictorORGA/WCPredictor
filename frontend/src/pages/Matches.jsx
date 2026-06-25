@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { API, authFetch } from '../config.js';
 import { useLang } from '../LanguageContext.jsx';
-import { teamFlag } from '../flags.js';
+import { flagUrl } from '../flags.js';
 
 const STAGE_ORDER = ['group', 'round32', 'round16', 'quarter', 'semi', 'final'];
 
@@ -37,15 +37,27 @@ export default function Matches() {
   const [flash, setFlash] = useState({});
   const { state } = useLocation();
   const [groupFilter, setGroupFilter]   = useState(null);
-  const [statusFilter, setStatusFilter] = useState(state?.statusFilter ?? 'all');
+  const [statusFilter, setStatusFilter] = useState(state?.statusFilter ?? 'scheduled');
   const [filterOpen, setFilterOpen]     = useState(false);
-  const filterRef = useRef(null);
+  const filterRef   = useRef(null);
+  const firstCardRef = useRef(null);
+  const scrolledRef  = useRef(false);
 
   useEffect(() => {
     loadMatches();
     loadPredictions();
     loadBotPredictions();
   }, []);
+
+  // Scroll au premier match dès que les données arrivent
+  useEffect(() => {
+    if (matches.length > 0 && !scrolledRef.current) {
+      scrolledRef.current = true;
+      setTimeout(() => {
+        firstCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
+  }, [matches]);
 
   // Fermer le popover au clic extérieur
   useEffect(() => {
@@ -251,7 +263,7 @@ export default function Matches() {
       )}
 
       {/* Matchs par stage */}
-      {STAGE_ORDER.filter((s) => grouped[s]).map((stage) => (
+      {STAGE_ORDER.filter((s) => grouped[s]).map((stage, stageIdx) => (
         <div key={stage} className="mb-8">
           <h3 className="text-xs font-black uppercase tracking-widest mb-3 pb-2 border-b"
             style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
@@ -259,7 +271,7 @@ export default function Matches() {
           </h3>
 
           <div className="space-y-2">
-            {grouped[stage].map((match) => {
+            {grouped[stage].map((match, matchIdx) => {
               const pred = predictions[match.id];
               const bot  = botPredictions[match.id];
               const inp  = inputs[match.id] || { home: '', away: '' };
@@ -267,8 +279,9 @@ export default function Matches() {
               const st   = STATUS_STYLE[match.status] || STATUS_STYLE.scheduled;
               const isScheduled = match.status === 'scheduled';
 
+              const isFirst = stageIdx === 0 && matchIdx === 0;
               return (
-                <div key={match.id} className="card overflow-hidden">
+                <div key={match.id} ref={isFirst ? firstCardRef : null} className="card overflow-hidden">
                   <div className="p-4 flex flex-wrap sm:flex-nowrap items-center gap-3">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full shrink-0 w-20 text-center"
                       style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
@@ -278,7 +291,10 @@ export default function Matches() {
                     <div className="flex-1 flex items-center justify-center gap-3 min-w-0">
                       <span className="font-semibold text-right truncate w-32 flex items-center justify-end gap-1.5" style={{ color: 'var(--text)' }}>
                         {match.home_team}
-                        <span className="shrink-0 text-base leading-none">{teamFlag(match.home_team_code)}</span>
+                        {flagUrl(match.home_team_code) && (
+                          <img src={flagUrl(match.home_team_code)} alt={match.home_team_code}
+                            width="20" height="15" className="shrink-0 rounded-sm" style={{ objectFit: 'cover' }} />
+                        )}
                       </span>
                       {match.status === 'finished' ? (
                         <span className="text-xl font-black shrink-0 w-14 text-center" style={{ color: 'var(--accent)' }}>
@@ -290,7 +306,10 @@ export default function Matches() {
                         </span>
                       )}
                       <span className="font-semibold text-left truncate w-32 flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
-                        <span className="shrink-0 text-base leading-none">{teamFlag(match.away_team_code)}</span>
+                        {flagUrl(match.away_team_code) && (
+                          <img src={flagUrl(match.away_team_code)} alt={match.away_team_code}
+                            width="20" height="15" className="shrink-0 rounded-sm" style={{ objectFit: 'cover' }} />
+                        )}
                         {match.away_team}
                       </span>
                     </div>
