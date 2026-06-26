@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API, authFetch } from '../config.js';
 
@@ -12,6 +12,11 @@ export default function Admin() {
   const [flash, setFlash] = useState({});
   const [tab, setTab] = useState('pending');
 
+  const [scrapeRunning, setScrapeRunning] = useState(false);
+  const [scrapeFlash, setScrapeFlash] = useState(null);
+  const [scrapeLast, setScrapeLast] = useState(null);
+  const pollRef = useRef(null);
+
   useEffect(() => {
     if (!user || user.role !== 'admin') navigate('/');
   }, []);
@@ -22,6 +27,63 @@ export default function Admin() {
       .then((d) => setMatches(d.matches || []))
       .catch(() => {});
   }, []);
+
+  // Récupère le statut du scraper au montage
+  useEffect(() => {
+    authFetch(`${API}/api/admin/scrape/status`)
+      .then((r) => r.json())
+      .then((d) => {
+        setScrapeLast(d.last || null);
+        if (d.running) {
+          setScrapeRunning(true);
+          pollRef.current = setTimeout(pollScrapeStatus, 2000);
+        }
+      })
+      .catch(() => {});
+    return () => clearTimeout(pollRef.current);
+  }, []);
+
+  const pollScrapeStatus = async () => {
+    try {
+      const r = await authFetch(`${API}/api/admin/scrape/status`);
+      const d = await r.json();
+      setScrapeLast(d.last || null);
+      if (d.running) {
+        pollRef.current = setTimeout(pollScrapeStatus, 2000);
+      } else {
+        setScrapeRunning(false);
+        if (d.last?.success) {
+          setScrapeFlash({ text: '✓ Import terminé avec succès', isError: false });
+          fetch(`${API}/api/matches`).then((r2) => r2.json()).then((d2) => setMatches(d2.matches || []));
+        } else if (d.last?.success === false) {
+          setScrapeFlash({ text: `Erreur : ${d.last.error}`, isError: true });
+        }
+        setTimeout(() => setScrapeFlash(null), 6000);
+      }
+    } catch {
+      setScrapeRunning(false);
+      setScrapeFlash({ text: 'Service de scraping indisponible', isError: true });
+      setTimeout(() => setScrapeFlash(null), 6000);
+    }
+  };
+
+  const handleScrape = async () => {
+    if (!window.confirm(
+      'Lancer l\'import depuis la source externe ?\n\nLes matchs et équipes seront mis à jour. Les pronostics existants sont conservés.'
+    )) return;
+    setScrapeRunning(true);
+    setScrapeFlash(null);
+    try {
+      const res = await authFetch(`${API}/api/admin/scrape`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      pollRef.current = setTimeout(pollScrapeStatus, 2000);
+    } catch (err) {
+      setScrapeRunning(false);
+      setScrapeFlash({ text: err.message, isError: true });
+      setTimeout(() => setScrapeFlash(null), 6000);
+    }
+  };
 
   const handleScore = (matchId, side, value) => {
     setScores((prev) => ({
@@ -72,6 +134,36 @@ export default function Admin() {
         <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
           Saisie des résultats — les points sont calculés automatiquement
         </p>
+      </div>
+
+      {/* Section scraping */}
+      <div className="card p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-semibold" style={{ color: 'var(--text)' }}>Import des données</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Met à jour matchs, équipes et buteurs depuis la source externe. Les pronostics existants sont conservés.
+          </p>
+          {scrapeLast && (
+            <p className="text-xs mt-1" style={{ color: scrapeLast.success ? 'var(--accent)' : '#f87171' }}>
+              Dernier import : {scrapeLast.success ? '✓ succès' : '✗ ' + scrapeLast.error}
+              {scrapeLast.trigger ? ` (${scrapeLast.trigger})` : ''}
+              {' — '}{new Date(scrapeLast.at).toLocaleString('fr-FR')}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {scrapeFlash && (
+            <span className={`text-xs ${scrapeFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
+              {scrapeFlash.text}
+            </span>
+          )}
+          <button
+            onClick={handleScrape}
+            disabled={scrapeRunning}
+            className="btn btn-primary text-sm px-4 py-2">
+            {scrapeRunning ? '⏳ Import en cours…' : '↻ Lancer le scraping'}
+          </button>
+        </div>
       </div>
 
       {/* Onglets */}

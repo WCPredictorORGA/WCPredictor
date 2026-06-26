@@ -8,13 +8,16 @@ Lance : python scraper.py
 
 import os
 import re
+import sys
 import json
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 import requests
 import psycopg2
+from flask import Flask, jsonify
 
 # ---------------------------------------------------------------------------
 # Config
@@ -222,20 +225,6 @@ def extract_goals(raw_matches: list[dict]) -> dict[str, dict]:
 # Écriture en base
 # ---------------------------------------------------------------------------
 
-def reset_game_data(conn):
-    """
-    Vide les tables dépendant des matchs et équipes (pas les users/predictions).
-    Les predictions sont supprimées car les match_id vont changer.
-    """
-    with conn.cursor() as cur:
-        cur.execute(
-            "TRUNCATE bot_predictions, predictions, player_stats, players, "
-            "matches, teams RESTART IDENTITY CASCADE"
-        )
-    conn.commit()
-    log.info("Tables vidées.")
-
-
 def insert_teams(conn, teams: dict[str, dict]) -> dict[str, int]:
     """Insère les équipes et retourne { name: id }."""
     team_id_map: dict[str, int] = {}
@@ -259,7 +248,7 @@ def insert_teams(conn, teams: dict[str, dict]) -> dict[str, int]:
 
 
 def insert_matches(conn, matches: list[dict]) -> dict[tuple, int]:
-    """Insère les matchs et retourne { (home_id, away_id): match_id }."""
+    """Insère ou met à jour les matchs. Retourne { (home_id, away_id): match_id }."""
     match_id_map: dict[tuple, int] = {}
     with conn.cursor() as cur:
         for m in matches:
@@ -269,6 +258,20 @@ def insert_matches(conn, matches: list[dict]) -> dict[tuple, int]:
                     (home_team_id, away_team_id, match_datetime,
                      stage, group_letter, stadium, status, home_score, away_score)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (home_team_id, away_team_id) DO UPDATE SET
+                    match_datetime = EXCLUDED.match_datetime,
+                    stage          = EXCLUDED.stage,
+                    group_letter   = EXCLUDED.group_letter,
+                    stadium        = EXCLUDED.stadium,
+                    -- Le statut ne peut qu'avancer (jamais rétrograder depuis 'finished')
+                    status     = CASE
+                                     WHEN EXCLUDED.status = 'finished' THEN 'finished'::match_status
+                                     WHEN matches.status  = 'finished' THEN 'finished'::match_status
+                                     ELSE EXCLUDED.status
+                                 END,
+                    -- Les scores de la source écrasent, sauf si admin les a déjà saisis
+                    home_score = COALESCE(EXCLUDED.home_score, matches.home_score),
+                    away_score = COALESCE(EXCLUDED.away_score, matches.away_score)
                 RETURNING id
                 """,
                 (
@@ -281,11 +284,39 @@ def insert_matches(conn, matches: list[dict]) -> dict[tuple, int]:
             match_id_map[(m["home_team_id"], m["away_team_id"])] = mid
     conn.commit()
     log.info(
-        "%d matchs insérés (%d terminés).",
+        "%d matchs importés (%d terminés).",
         len(matches),
         sum(1 for m in matches if m["status"] == "finished"),
     )
     return match_id_map
+
+
+def score_predictions(conn):
+    """
+    Calcule les points de tous les pronostics dont le match est terminé.
+    Score exact = 3 pts | bon résultat (vainqueur ou nul) = 1 pt | sinon 0.
+    Idempotent : recalcule à chaque passage (auto-correctif si un score change).
+    Reproduit la logique de backend/src/scoring.js.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE predictions p
+            SET points_awarded = CASE
+                WHEN p.pred_home = m.home_score AND p.pred_away = m.away_score THEN 3
+                WHEN sign(p.pred_home - p.pred_away) = sign(m.home_score - m.away_score) THEN 1
+                ELSE 0
+            END
+            FROM matches m
+            WHERE p.match_id = m.id
+              AND m.status = 'finished'
+              AND m.home_score IS NOT NULL
+              AND m.away_score IS NOT NULL
+            """
+        )
+        updated = cur.rowcount
+    conn.commit()
+    log.info("%d pronostics notés.", updated)
 
 
 def insert_scorers(conn, players_data: dict[str, dict], team_id_map: dict[str, int]):
@@ -338,13 +369,14 @@ def main():
     log.info("Connecté à la base de données.")
 
     try:
-        reset_game_data(conn)
-
         teams      = extract_teams(raw_matches)
         team_id_map = insert_teams(conn, teams)
 
         matches = extract_matches(raw_matches, team_id_map)
         insert_matches(conn, matches)
+
+        # Calcule les points des pronostics pour les matchs désormais terminés
+        score_predictions(conn)
 
         players_data = extract_goals(raw_matches)
         insert_scorers(conn, players_data, team_id_map)
@@ -355,5 +387,87 @@ def main():
         conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Mode serveur HTTP (--serve) : permet de déclencher le scraping via API REST
+# ---------------------------------------------------------------------------
+
+_flask_app = Flask(__name__)
+_lock = threading.Lock()
+_status: dict = {"running": False, "last": None}
+
+# Fuseau horaire et heure du scraping automatique quotidien
+SCHEDULE_TZ   = os.environ.get("SCRAPER_TZ", "Europe/Paris")
+SCHEDULE_HOUR = int(os.environ.get("SCRAPER_HOUR", "10"))
+
+
+def _run_scrape(trigger: str) -> bool:
+    """
+    Lance un scraping en arrière-plan si aucun n'est déjà en cours.
+    Renvoie False si un scraping tourne déjà (verrou non acquis).
+    Partagé par le déclencheur HTTP manuel et le planificateur quotidien.
+    """
+    if not _lock.acquire(blocking=False):
+        log.warning("Scraping ignoré (déjà en cours) — déclencheur : %s", trigger)
+        return False
+
+    def run():
+        _status["running"] = True
+        log.info("Scraping démarré (déclencheur : %s).", trigger)
+        try:
+            main()
+            _status["last"] = {
+                "success": True,
+                "trigger": trigger,
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as exc:
+            log.error("Scraping échoué : %s", exc)
+            _status["last"] = {
+                "success": False,
+                "trigger": trigger,
+                "error": str(exc),
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+        finally:
+            _status["running"] = False
+            _lock.release()
+
+    threading.Thread(target=run, daemon=True).start()
+    return True
+
+
+@_flask_app.route("/scrape", methods=["POST"])
+def trigger_scrape():
+    if not _run_scrape("manuel"):
+        return jsonify({"error": "Scraping déjà en cours"}), 409
+    return jsonify({"message": "Scraping démarré"}), 202
+
+
+@_flask_app.route("/status", methods=["GET"])
+def get_status():
+    return jsonify(_status)
+
+
+def _start_scheduler():
+    """Planifie un scraping automatique tous les jours à SCHEDULE_HOUR h00."""
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    scheduler = BackgroundScheduler(timezone=SCHEDULE_TZ)
+    scheduler.add_job(
+        lambda: _run_scrape("planifié"),
+        CronTrigger(hour=SCHEDULE_HOUR, minute=0),
+        id="daily_scrape",
+        misfire_grace_time=3600,   # tolère 1 h de retard (ex : redémarrage du conteneur)
+    )
+    scheduler.start()
+    log.info("Scraping quotidien planifié à %02dh00 (%s).", SCHEDULE_HOUR, SCHEDULE_TZ)
+
+
 if __name__ == "__main__":
-    main()
+    if "--serve" in sys.argv:
+        _start_scheduler()
+        log.info("Mode serveur démarré sur le port 5001.")
+        _flask_app.run(host="0.0.0.0", port=5001, debug=False)
+    else:
+        main()

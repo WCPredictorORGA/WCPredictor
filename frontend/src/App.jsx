@@ -62,12 +62,9 @@ function Home() {
     <div className="max-w-5xl mx-auto mt-10 px-4">
       {/* Hero */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-          style={{ background: 'var(--accent-glow)', border: '2px solid var(--accent)' }}>
-          <span className="text-3xl">⚽</span>
-        </div>
+        <img src="/favicon.svg" alt="World Cup Predictor.AI" width="72" height="72" className="inline-block mb-4" />
         <h1 className="text-5xl font-black tracking-tight" style={{ color: 'var(--text)' }}>
-          WC<span style={{ color: 'var(--accent)' }}>Predictor</span>
+          World Cup Predictor<span style={{ color: 'var(--accent)' }}>.AI</span>
         </h1>
         <p style={{ color: 'var(--text-muted)' }} className="mt-3 text-lg max-w-xl mx-auto">
           {t('home.subtitle')}
@@ -200,9 +197,10 @@ function NavBar({ dark, onToggle }) {
   return (
     <nav style={{ backgroundColor: 'var(--bg-nav)' }} className="px-6 py-4 shadow-lg sticky top-0 z-50">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 no-underline">
-          <span className="text-lg font-black tracking-tight text-white">
-            WC<span style={{ color: 'var(--accent)' }}>Predictor</span>
+        <Link to="/" className="flex items-center gap-2.5 no-underline">
+          <img src="/favicon.svg" alt="" width="30" height="30" className="shrink-0" />
+          <span className="text-lg font-black tracking-tight text-white whitespace-nowrap">
+            World Cup Predictor<span style={{ color: 'var(--accent)' }}>.AI</span>
           </span>
         </Link>
 

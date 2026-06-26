@@ -63,6 +63,10 @@ app.use('/api/leaderboard',     require('./routes/leaderboard'));
 app.use('/api/stats',           require('./routes/stats'));
 app.use('/api/bot-predictions', require('./routes/botpredictions'));
 app.use('/api/home-stats',      require('./routes/homestats'));
+app.use('/api/admin',           require('./routes/admin'));
+
+// ── 404 JSON (route inconnue) ─────────────────────────────────────────────────
+app.use((_req, res) => res.status(404).json({ error: 'Route introuvable' }));
 
 // ── Gestionnaire d'erreurs global ──────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars

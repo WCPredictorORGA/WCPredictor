@@ -21,6 +21,8 @@ services:
     build: ./backend
     container_name: wcp_backend
     env_file: .env
+    environment:
+      - SCRAPER_URL=http://scraper:5001
     ports: ["3000:3000"]
     depends_on:
       db: { condition: service_healthy }
@@ -52,14 +54,19 @@ services:
     depends_on: [backend]
     profiles: ["prod"]
 
-  # Scraper FBref — lancé manuellement : docker compose run --rm scraper
+  # Scraper — tourne en permanence comme serveur HTTP (POST /scrape pour déclencher)
   scraper:
     build: ./scraper
     container_name: wcp_scraper
     env_file: .env
     depends_on:
       db: { condition: service_healthy }
-    profiles: ["tools"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/status')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   # Modèle Poisson — lancé manuellement : docker compose run --rm ai-service
   ai-service:

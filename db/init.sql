@@ -34,7 +34,8 @@ CREATE TABLE matches (
   status         match_status NOT NULL DEFAULT 'scheduled',
   home_score     SMALLINT CHECK (home_score >= 0),
   away_score     SMALLINT CHECK (away_score >= 0),
-  CHECK (home_team_id <> away_team_id)
+  CHECK (home_team_id <> away_team_id),
+  UNIQUE (home_team_id, away_team_id)
 );
 
 -- Table des joueurs (pour les buteurs)
