@@ -19,6 +19,7 @@ export default function Login() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Identifiants incorrects.');
+      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/matches');
       window.location.reload();

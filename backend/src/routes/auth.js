@@ -59,7 +59,7 @@ router.post('/login', rules.login, handle, async (req, res) => {
         );
 
         res.cookie('token', token, COOKIE_OPTIONS);
-        res.json({ user: { id: user.id, username: user.username, role: user.role } });
+        res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Erreur serveur' });

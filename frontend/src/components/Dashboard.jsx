@@ -34,6 +34,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await authFetch(`${API}/api/auth/logout`, { method: 'POST' }).catch(() => {});
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
     window.location.reload();
