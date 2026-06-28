@@ -77,115 +77,102 @@ export default function Leaderboard() {
         )}
 
         {!loading && !error && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: 540 }}>
-              <thead>
-                <tr
-                  className="text-xs font-bold uppercase tracking-wider"
-                  style={{
-                    background: 'var(--bg-input)',
-                    borderBottom: '1px solid var(--border)',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <th className="px-4 py-3 w-16 text-center">{t('leaderboard.col.rank')}</th>
-                  <th className="px-4 py-3">{t('leaderboard.col.player')}</th>
-                  <th className="px-4 py-3 text-center w-24">{t('leaderboard.col.points')}</th>
-                  <th className="px-4 py-3 text-center w-28 hidden sm:table-cell">
-                    {t('leaderboard.col.correct') || 'Bon prono'}
-                  </th>
-                  <th className="px-4 py-3 text-center w-28 hidden md:table-cell">
-                    {t('leaderboard.col.exact') || 'Score exact'}
-                  </th>
-                  <th className="px-4 py-3 text-center w-28 hidden md:table-cell">
-                    {t('leaderboard.col.scored')}
-                  </th>
-                  <th className="px-4 py-3 text-center w-28 hidden lg:table-cell">
-                    {t('leaderboard.col.precision') || '% Précision'}
-                  </th>
-                </tr>
-              </thead>
+          <table className="w-full text-left">
+            <thead>
+              <tr
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{
+                  background: 'var(--bg-input)',
+                  borderBottom: '1px solid var(--border)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.rank')}</th>
+                <th className="px-3 py-3">{t('leaderboard.col.player')}</th>
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.points')}</th>
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.correct')}</th>
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.exact')}</th>
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.scored')}</th>
+                <th className="px-3 py-3 text-center">{t('leaderboard.col.precision')}</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {leaderboard.map((row, i) => {
-                  const rank = i + 1;
-                  const isMe = currentUser && row.username === currentUser.username;
-                  return (
-                    <tr
-                      key={row.user_id}
-                      className="border-b transition-all duration-150"
-                      style={{
-                        borderColor: 'var(--border)',
-                        background: isMe ? 'rgba(217,119,6,0.09)' : 'transparent',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isMe) e.currentTarget.style.background = 'var(--bg-input)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isMe) e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      <td className="px-4 py-4 text-center">
-                        <div className="flex justify-center">
-                          <MedalBadge rank={rank} />
-                        </div>
-                      </td>
+            <tbody>
+              {leaderboard.map((row, i) => {
+                const rank = i + 1;
+                const isMe = currentUser && row.username === currentUser.username;
+                return (
+                  <tr
+                    key={row.user_id}
+                    className="border-b transition-all duration-150"
+                    style={{
+                      borderColor: 'var(--border)',
+                      background: isMe ? 'rgba(217,119,6,0.09)' : 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isMe) e.currentTarget.style.background = 'var(--bg-input)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isMe) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <td className="px-3 py-4 text-center">
+                      <div className="flex justify-center">
+                        <MedalBadge rank={rank} />
+                      </div>
+                    </td>
 
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold" style={{ color: 'var(--text)' }}>
-                            {row.username}
+                    <td className="px-3 py-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold" style={{ color: 'var(--text)' }}>
+                          {row.username}
+                        </span>
+                        {isMe && (
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: 'var(--accent)', color: '#000' }}
+                          >
+                            {t('leaderboard.you')}
                           </span>
-                          {isMe && (
-                            <span
-                              className="text-xs font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: 'var(--accent)', color: '#000' }}
-                            >
-                              {t('leaderboard.you')}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        )}
+                      </div>
+                    </td>
 
-                      <td
-                        className="px-4 py-4 text-center font-black text-xl"
-                        style={{ color: 'var(--accent)' }}
-                      >
-                        {row.total_points}
-                      </td>
+                    <td className="px-3 py-4 text-center font-black text-xl" style={{ color: 'var(--accent)' }}>
+                      {row.total_points}
+                    </td>
 
-                      <td className="px-4 py-4 text-center hidden sm:table-cell" style={{ color: 'var(--text)' }}>
-                        {row.bon_prono}
-                      </td>
+                    <td className="px-3 py-4 text-center" style={{ color: 'var(--text)' }}>
+                      {row.bon_prono}
+                    </td>
 
-                      <td className="px-4 py-4 text-center hidden md:table-cell" style={{ color: 'var(--text)' }}>
-                        {row.score_exact}
-                      </td>
+                    <td className="px-3 py-4 text-center" style={{ color: 'var(--text)' }}>
+                      {row.score_exact}
+                    </td>
 
-                      <td className="px-4 py-4 text-center hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>
-                        {row.matchs_joues}
-                      </td>
+                    <td className="px-3 py-4 text-center" style={{ color: 'var(--text-muted)' }}>
+                      {row.matchs_joues}
+                    </td>
 
-                      <td
-                        className="px-4 py-4 text-center hidden lg:table-cell font-semibold"
-                        style={{ color: Number(row.precision_pct) >= 50 ? 'var(--accent)' : 'var(--text-muted)' }}
-                      >
-                        {row.matchs_joues > 0 ? `${row.precision_pct}%` : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {leaderboard.length === 0 && (
-                  <tr>
-                    <td colSpan="7" className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
-                      Aucun pronostic pour le moment.
+                    <td
+                      className="px-3 py-4 text-center font-semibold"
+                      style={{ color: Number(row.precision_pct) >= 50 ? 'var(--accent)' : 'var(--text-muted)' }}
+                    >
+                      {row.matchs_joues > 0 ? `${row.precision_pct}%` : '—'}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+
+              {leaderboard.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                    {t('leaderboard.empty')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
