@@ -6,6 +6,8 @@ const helmet = require('helmet');
 
 const app = express();
 
+app.set('trust proxy', 1 /* number of proxies between user and server */);
+
 // ── En-têtes de sécurité HTTP ─────────────────────────────────────────────────
 app.use(helmet({
     contentSecurityPolicy: {
