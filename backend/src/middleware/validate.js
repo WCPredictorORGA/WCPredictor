@@ -48,6 +48,21 @@ const rules = {
             .isInt({ min: 0, max: 99 }).withMessage('Score extérieur invalide (0–99)').toInt(),
     ],
 
+    verifyReset: [
+        body('username').trim().notEmpty().withMessage("Nom d'utilisateur requis"),
+        body('email').trim().normalizeEmail().isEmail().withMessage('Adresse email invalide'),
+    ],
+
+    resetPassword: [
+        body('username').trim().notEmpty().withMessage("Nom d'utilisateur requis"),
+        body('email').trim().normalizeEmail().isEmail().withMessage('Adresse email invalide'),
+        body('new_password')
+            .isLength({ min: 8, max: 128 }).withMessage('Le mot de passe doit contenir entre 8 et 128 caractères')
+            .matches(/[A-Z]/).withMessage('Au moins une majuscule requise')
+            .matches(/[a-z]/).withMessage('Au moins une minuscule requise')
+            .matches(/[0-9]/).withMessage('Au moins un chiffre requis'),
+    ],
+
     matchResult: [
         param('id')
             .isInt({ min: 1 }).withMessage('ID de match invalide').toInt(),

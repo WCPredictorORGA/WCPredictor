@@ -72,4 +72,47 @@ router.post('/logout', (_req, res) => {
     res.json({ message: 'Déconnecté' });
 });
 
+// VÉRIFICATION IDENTITÉ (étape 1 — mot de passe oublié)
+router.post('/verify-reset', rules.verifyReset, handle, async (req, res) => {
+    const { username, email } = req.body;
+    try {
+        const result = await pool.query(
+            'SELECT id FROM users WHERE username = $1 AND email = $2',
+            [username, email]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Aucun compte ne correspond à ces informations' });
+        }
+        res.json({ verified: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// RÉINITIALISATION MDP (étape 2 — mot de passe oublié)
+// Re-vérifie username + email avant de mettre à jour : le frontend ne peut pas sauter l'étape 1.
+router.post('/reset-password', rules.resetPassword, handle, async (req, res) => {
+    const { username, email, new_password } = req.body;
+    try {
+        const result = await pool.query(
+            'SELECT id FROM users WHERE username = $1 AND email = $2',
+            [username, email]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Aucun compte ne correspond à ces informations' });
+        }
+        // Même librairie (bcryptjs) et même nombre de rounds que /register
+        const password_hash = await bcrypt.hash(new_password, 12);
+        await pool.query(
+            'UPDATE users SET password_hash = $1 WHERE id = $2',
+            [password_hash, result.rows[0].id]
+        );
+        res.json({ message: 'Mot de passe réinitialisé avec succès' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
 module.exports = router;
