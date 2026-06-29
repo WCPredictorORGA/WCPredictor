@@ -249,21 +249,38 @@ async function generateAllPredictions(pool, opts = {}) {
     const pred = predictMatch(m.home_team, m.away_team, stats, avgGoals);
 
     // 1. Sauvegarde dans bot_predictions (probabilités + xG)
-    await pool.query(`
-      INSERT INTO bot_predictions
-        (match_id, pred_home, pred_away, prob_home_win, prob_draw, prob_away_win, xg_home, xg_away)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-      ON CONFLICT (match_id) DO UPDATE SET
-        pred_home     = EXCLUDED.pred_home,
-        pred_away     = EXCLUDED.pred_away,
-        prob_home_win = EXCLUDED.prob_home_win,
-        prob_draw     = EXCLUDED.prob_draw,
-        prob_away_win = EXCLUDED.prob_away_win,
-        xg_home       = EXCLUDED.xg_home,
-        xg_away       = EXCLUDED.xg_away
-    `, [m.id, pred.pred_home, pred.pred_away,
-        pred.prob_home_win, pred.prob_draw, pred.prob_away_win,
-        pred.xg_home, pred.xg_away]);
+    // Tente avec xg_home/xg_away ; si la migration n'est pas faite, repli sans ces colonnes
+    try {
+      await pool.query(`
+        INSERT INTO bot_predictions
+          (match_id, pred_home, pred_away, prob_home_win, prob_draw, prob_away_win, xg_home, xg_away)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        ON CONFLICT (match_id) DO UPDATE SET
+          pred_home     = EXCLUDED.pred_home,
+          pred_away     = EXCLUDED.pred_away,
+          prob_home_win = EXCLUDED.prob_home_win,
+          prob_draw     = EXCLUDED.prob_draw,
+          prob_away_win = EXCLUDED.prob_away_win,
+          xg_home       = EXCLUDED.xg_home,
+          xg_away       = EXCLUDED.xg_away
+      `, [m.id, pred.pred_home, pred.pred_away,
+          pred.prob_home_win, pred.prob_draw, pred.prob_away_win,
+          pred.xg_home, pred.xg_away]);
+    } catch (err) {
+      if (err.code !== '42703') throw err; // colonne inexistante → repli
+      await pool.query(`
+        INSERT INTO bot_predictions
+          (match_id, pred_home, pred_away, prob_home_win, prob_draw, prob_away_win)
+        VALUES ($1,$2,$3,$4,$5,$6)
+        ON CONFLICT (match_id) DO UPDATE SET
+          pred_home     = EXCLUDED.pred_home,
+          pred_away     = EXCLUDED.pred_away,
+          prob_home_win = EXCLUDED.prob_home_win,
+          prob_draw     = EXCLUDED.prob_draw,
+          prob_away_win = EXCLUDED.prob_away_win
+      `, [m.id, pred.pred_home, pred.pred_away,
+          pred.prob_home_win, pred.prob_draw, pred.prob_away_win]);
+    }
 
     // 2. Sauvegarde dans predictions (classement)
     await pool.query(`
