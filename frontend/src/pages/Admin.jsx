@@ -19,6 +19,7 @@ export default function Admin() {
 
   const [botRunning, setBotRunning] = useState(false);
   const [botFlash, setBotFlash] = useState(null);
+  const [seedFlash, setSeedFlash] = useState(null);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') navigate('/');
@@ -109,6 +110,20 @@ export default function Admin() {
     } finally {
       setBotRunning(false);
       setTimeout(() => setBotFlash(null), 12000);
+    }
+  };
+
+  const handleSeedBotnaru = async () => {
+    setSeedFlash(null);
+    try {
+      const res = await authFetch(`${API}/api/admin/seed-botnaru-prediction`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      setSeedFlash({ text: '✓ ' + data.message, isError: false });
+    } catch (err) {
+      setSeedFlash({ text: err.message, isError: true });
+    } finally {
+      setTimeout(() => setSeedFlash(null), 8000);
     }
   };
 
@@ -238,6 +253,24 @@ export default function Admin() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Section seed Botnaru */}
+      <div className="card p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-semibold" style={{ color: 'var(--text)' }}>🤖 Score exact Botnaru</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Insère un pronostic "score exact" (3 pts) pour Botnaru sur le premier match terminé sans prédiction de sa part.
+          </p>
+          {seedFlash && (
+            <p className={`text-xs mt-1.5 font-semibold ${seedFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
+              {seedFlash.text}
+            </p>
+          )}
+        </div>
+        <button onClick={handleSeedBotnaru} className="btn btn-primary text-sm px-4 py-2 shrink-0">
+          Insérer score exact
+        </button>
       </div>
 
       {/* Onglets */}
