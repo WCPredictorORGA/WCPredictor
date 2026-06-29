@@ -3,7 +3,7 @@ const pool = require('../db');
 const router = express.Router();
 
 // GET /api/bot-predictions
-// Retourne les prédictions du bot pour tous les matchs à venir
+// Retourne les prédictions Botnaru pour tous les matchs à venir
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -17,7 +17,9 @@ router.get('/', async (req, res) => {
              bp.pred_away,
              bp.prob_home_win,
              bp.prob_draw,
-             bp.prob_away_win
+             bp.prob_away_win,
+             bp.xg_home,
+             bp.xg_away
       FROM bot_predictions bp
       JOIN matches m  ON m.id  = bp.match_id
       JOIN teams   ht ON ht.id = m.home_team_id

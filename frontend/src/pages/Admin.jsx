@@ -88,24 +88,27 @@ export default function Admin() {
     }
   };
 
-  const handleGenerateBot = async () => {
+  const handleGenerateBot = async (upsert = false) => {
     setBotRunning(true);
     setBotFlash(null);
     try {
-      const res = await authFetch(`${API}/api/admin/generate-bot-predictions`, { method: 'POST' });
+      const url = `${API}/api/admin/generate-bot-predictions${upsert ? '?upsert=true' : ''}`;
+      const res = await authFetch(url, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur');
+      const count = data.inserted?.length ?? 0;
       setBotFlash({
-        text: data.inserted?.length
-          ? `✓ ${data.inserted.length} prédiction(s) générée(s)`
+        text: count > 0
+          ? `✓ ${count} prédiction(s) via Poisson`
           : '✓ ' + data.message,
         isError: false,
+        detail: data.inserted || [],
       });
     } catch (err) {
-      setBotFlash({ text: err.message, isError: true });
+      setBotFlash({ text: err.message, isError: true, detail: [] });
     } finally {
       setBotRunning(false);
-      setTimeout(() => setBotFlash(null), 8000);
+      setTimeout(() => setBotFlash(null), 12000);
     }
   };
 
@@ -191,25 +194,49 @@ export default function Admin() {
       </div>
 
       {/* Section Botnaru */}
-      <div className="card p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="font-semibold" style={{ color: 'var(--text)' }}>🤖 Prédictions Botnaru</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Génère automatiquement les prédictions Botnaru pour tous les matchs à venir sans prédiction (probabilités Elo).
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {botFlash && (
-            <span className={`text-xs ${botFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
-              {botFlash.text}
-            </span>
-          )}
-          <button
-            onClick={handleGenerateBot}
-            disabled={botRunning}
-            className="btn btn-primary text-sm px-4 py-2">
-            {botRunning ? '⏳ Génération…' : '⚡ Générer prédictions'}
-          </button>
+      <div className="card p-4 mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold" style={{ color: 'var(--text)' }}>🤖 Prédictions Botnaru — Poisson</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              Calcule les probabilités et scores via la distribution de Poisson (attaque/défense des matchs joués).
+              "Recalculer" écrase les prédictions existantes.
+            </p>
+            {botFlash && (
+              <p className={`text-xs mt-2 font-semibold ${botFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
+                {botFlash.text}
+              </p>
+            )}
+            {botFlash?.detail?.length > 0 && (
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border text-xs font-mono"
+                style={{ borderColor: 'var(--border)', background: 'var(--bg-input)', padding: '6px 10px' }}>
+                {botFlash.detail.map((d, i) => (
+                  <div key={i} className="py-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <span style={{ color: 'var(--text)' }}>{d.match}</span>
+                    {' → '}<span style={{ color: 'var(--accent)', fontWeight: 700 }}>{d.score}</span>
+                    {' '}xG [{d.xg}]
+                    {' '}({d.probs})
+                    {' '}<span style={{ opacity: 0.5 }}>[{d.method}]</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => handleGenerateBot(false)}
+              disabled={botRunning}
+              className="btn btn-primary text-sm px-4 py-2">
+              {botRunning ? '⏳…' : '⚡ Générer'}
+            </button>
+            <button
+              onClick={() => handleGenerateBot(true)}
+              disabled={botRunning}
+              className="btn text-sm px-4 py-2"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+              ↻ Recalculer
+            </button>
+          </div>
         </div>
       </div>
 

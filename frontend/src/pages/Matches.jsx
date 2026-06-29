@@ -363,9 +363,11 @@ export default function Matches() {
                     const hp = Math.round(bot.prob_home_win * 100);
                     const dp = Math.round(bot.prob_draw * 100);
                     const ap = Math.round(bot.prob_away_win * 100);
+                    const hasXG = bot.xg_home != null && bot.xg_away != null;
                     return (
                       <div className="px-4 pt-2.5 pb-3 border-t text-xs"
                         style={{ background: 'var(--bg-input)', borderColor: 'var(--border)' }}>
+                        {/* Ligne 1 : label + score prédit + proba */}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
                           <span className="font-bold" style={{ color: '#a78bfa' }}>🤖 Botnaru</span>
                           <span className="font-black" style={{ color: 'var(--accent)' }}>{bot.pred_home}–{bot.pred_away}</span>
@@ -374,15 +376,22 @@ export default function Matches() {
                             {' · '}Nul <span className="font-semibold" style={{ color: 'var(--text-muted)' }}>{dp}%</span>
                             {' · '}Ext. <span className="text-red-400 font-semibold">{ap}%</span>
                           </span>
+                          {hasXG && (
+                            <span className="ml-auto font-mono" style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                              xG {Number(bot.xg_home).toFixed(2)} – {Number(bot.xg_away).toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         {/* Barre de probabilité */}
-                        <div style={{ height: 6, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', display: 'flex', gap: 1 }}>
+                        <div style={{ height: 5, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', display: 'flex', gap: 1 }}>
                           <div style={{ height: '100%', background: '#22c55e', width: `${hp}%`, borderRadius: '999px 0 0 999px', transition: 'width 0.6s ease' }} />
                           <div style={{ height: '100%', background: 'var(--text-muted)', width: `${dp}%`, transition: 'width 0.6s ease' }} />
                           <div style={{ height: '100%', background: '#ef4444', width: `${ap}%`, borderRadius: '0 999px 999px 0', transition: 'width 0.6s ease' }} />
                         </div>
-                        <div className="flex justify-between mt-1" style={{ color: 'var(--text-muted)' }}>
-                          <span>Dom.</span><span>Nul</span><span>Ext.</span>
+                        <div className="flex justify-between mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                          <span>Dom. {hp}%</span>
+                          <span style={{ fontSize: 9, opacity: 0.6 }}>Distribution de Poisson</span>
+                          <span>Ext. {ap}%</span>
                         </div>
                       </div>
                     );
