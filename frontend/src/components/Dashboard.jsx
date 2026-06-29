@@ -210,7 +210,7 @@ export default function Dashboard() {
                   >
                     <span className="w-6 text-center text-sm shrink-0 flex items-center justify-center">
                       {isBot
-                        ? <img src="/botnaru.png" alt="Botnaru" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center 10%', border: '1.5px solid #a78bfa' }} />
+                        ? <img src="/botnaru.png" alt="Botnaru" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', border: '1.5px solid #a78bfa' }} />
                         : (MEDAL[i + 1] || <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>)}
                     </span>
                     <span className="flex-1 text-sm truncate flex items-center gap-1.5"

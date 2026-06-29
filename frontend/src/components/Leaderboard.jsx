@@ -38,7 +38,7 @@ function Avatar({ username, size, borderColor }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       {isBot
-        ? <img src="/botnaru.png" alt="Botnaru" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 10%' }} />
+        ? <img src="/botnaru.png" alt="Botnaru" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
         : <span style={{ fontWeight: 900, fontSize: size * 0.4, color: borderColor }}>{username.charAt(0).toUpperCase()}</span>
       }
     </div>
@@ -121,7 +121,7 @@ export default function Leaderboard() {
                     boxShadow: isBot ? `0 -4px 20px rgba(167,139,250,0.4)` : 'none',
                   }}>
                     {isBot
-                      ? <img src="/botnaru.png" alt="Botnaru" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center 10%', border: '2px solid rgba(255,255,255,0.6)' }} />
+                      ? <img src="/botnaru.png" alt="Botnaru" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', border: '2px solid rgba(255,255,255,0.6)' }} />
                       : <span style={{ fontSize: 22 }}>{cfg.medal}</span>
                     }
                     <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{row.total_points}</span>
