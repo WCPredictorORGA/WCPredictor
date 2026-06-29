@@ -104,11 +104,6 @@ export default function Leaderboard() {
                   <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 700, color: isBot ? BOT_COLOR : 'var(--text)', textAlign: 'center', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {row.username}
                   </p>
-                  {isBot && (
-                    <p style={{ margin: '0 0 4px', fontSize: 10, color: BOT_COLOR, fontWeight: 700, textAlign: 'center', opacity: 0.85 }}>
-                      🤖 IA · Poisson
-                    </p>
-                  )}
                   {isMe && !isBot && (
                     <p style={{ margin: '0 0 4px', fontSize: 10, color: 'var(--accent)', fontWeight: 700, textAlign: 'center' }}>
                       {t('leaderboard.you')}

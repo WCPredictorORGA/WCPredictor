@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { API } from './config.js';
 import { LanguageProvider, useLang } from './LanguageContext.jsx';
@@ -26,7 +26,65 @@ const GearIcon   = () => <svg {...iP}><circle cx="12" cy="12" r="3"/><path d="M1
 const SHORT_TABS = {
   fr: { matches: 'Matchs', stats: 'Stats', leaderboard: 'Classement', dashboard: 'Mon espace', admin: 'Admin' },
   en: { matches: 'Matches', stats: 'Stats', leaderboard: 'Ranking', dashboard: 'My space', admin: 'Admin' },
+  sk: { matches: 'Zápasy', stats: 'Štatistiky', leaderboard: 'Rebríček', dashboard: 'Môj priestor', admin: 'Admin' },
 };
+
+/* ── Langues disponibles (drapeaux via flagcdn.com) ── */
+const LANGS = [
+  { code: 'fr', label: 'Français',   flag: 'fr' },
+  { code: 'en', label: 'English',    flag: 'gb' },
+  { code: 'sk', label: 'Slovenčina', flag: 'sk' },
+];
+
+/* ── Sélecteur de langue déroulant avec drapeaux ── */
+function LanguageSelector() {
+  const { lang, setLang } = useLang();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = LANGS.find((l) => l.code === lang) || LANGS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-full shrink-0 px-2.5 py-1.5 transition-all duration-200"
+        style={{ border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}
+        title={current.label} aria-haspopup="listbox" aria-expanded={open}>
+        <img src={`https://flagcdn.com/24x18/${current.flag}.png`} alt="" width="20" height="15" style={{ borderRadius: 2, display: 'block' }} />
+        <span className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{current.code}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+          style={{ color: 'var(--text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <ul role="listbox"
+          className="absolute right-0 mt-2 rounded-xl overflow-hidden shadow-lg z-50"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: 160, listStyle: 'none', margin: 0, padding: 4 }}>
+          {LANGS.map((l) => (
+            <li key={l.code}>
+              <button onClick={() => { setLang(l.code); setOpen(false); }}
+                role="option" aria-selected={l.code === lang}
+                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-colors duration-150"
+                style={{ background: l.code === lang ? 'var(--accent-glow)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={(e) => { if (l.code !== lang) e.currentTarget.style.background = 'var(--bg-input)'; }}
+                onMouseLeave={(e) => { if (l.code !== lang) e.currentTarget.style.background = 'transparent'; }}>
+                <img src={`https://flagcdn.com/24x18/${l.flag}.png`} alt="" width="22" height="16" style={{ borderRadius: 2, display: 'block', flexShrink: 0 }} />
+                <span className="text-sm font-semibold" style={{ color: l.code === lang ? 'var(--accent)' : 'var(--text)' }}>{l.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function Home() {
   const { t } = useLang();
@@ -197,7 +255,7 @@ function Home() {
 
 /* ── NavBar ── */
 function NavBar({ dark, onToggle }) {
-  const { lang, toggleLang, t } = useLang();
+  const { t } = useLang();
   const isLoggedIn = !!localStorage.getItem('user');
   const location = useLocation();
   const user = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
@@ -225,7 +283,6 @@ function NavBar({ dark, onToggle }) {
               {navLink('/stats',       t('nav.stats'))}
               {navLink('/leaderboard', t('nav.leaderboard'))}
               {navLink('/dashboard',   t('nav.dashboard'))}
-              {navLink('/profile',     t('nav.profile'))}
               {user?.role === 'admin' && navLink('/admin', t('nav.admin'))}
             </>
           ) : (
@@ -241,18 +298,7 @@ function NavBar({ dark, onToggle }) {
           {!isLoggedIn && (
             <Link to="/register" className="btn btn-primary text-sm px-3 py-2 md:hidden">{t('nav.register')}</Link>
           )}
-          <div className="flex rounded-full overflow-hidden shrink-0"
-            style={{ border: '1px solid var(--border)', background: 'var(--bg-input)' }}>
-            {['fr', 'en'].map((l) => (
-              <button key={l} onClick={() => l !== lang && toggleLang()}
-                className="px-3 py-1 text-xs font-black uppercase tracking-wide transition-all duration-200"
-                style={lang === l
-                  ? { background: 'var(--accent)', color: '#000' }
-                  : { color: 'var(--text-muted)', cursor: 'pointer' }}>
-                {l}
-              </button>
-            ))}
-          </div>
+          <LanguageSelector />
           <button className="theme-toggle" onClick={onToggle} title={dark ? 'Mode clair' : 'Mode nuit'}>
             {dark ? '☀️' : '🌙'}
           </button>
@@ -302,15 +348,24 @@ export default function App() {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light');
   const isLoggedIn = !!localStorage.getItem('user');
 
+  // Applique le thème sur <html> pour que le fond du body suive aussi (corrige le mobile)
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', dark);
+    root.style.colorScheme = dark ? 'dark' : 'light';
+  }, [dark]);
+
   const toggleDark = () => {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
+    setDark((prev) => {
+      const next = !prev;
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+      return next;
+    });
   };
 
   return (
     <LanguageProvider>
-      <div className={dark ? 'dark' : ''}>
+      <div>
         <Router>
           <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
             <NavBar dark={dark} onToggle={toggleDark} />

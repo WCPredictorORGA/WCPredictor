@@ -184,7 +184,7 @@ body {
 }
 .pill.active {
   background-color: var(--accent);
-  border-color: var(--accent);
+  border-color: transparent;
   color: #000;
   font-weight: 700;
 }
