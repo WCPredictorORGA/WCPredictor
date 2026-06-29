@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { API } from '../config.js';
 import { useLang } from '../LanguageContext.jsx';
 import KnockoutBracket from '../components/KnockoutBracket.jsx';
+import { teamName } from '../teamNames.js';
 
 /**
  * Détermine les codes des équipes qualifiées via le classement des meilleurs 3èmes.
@@ -23,7 +24,7 @@ function bestThirdsQualified(groupedStandings) {
 }
 
 export default function Stats() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [scorers, setScorers] = useState([]);
   const [standings, setStandings] = useState({});
   const [loading, setLoading] = useState(true);
@@ -105,7 +106,7 @@ export default function Stats() {
                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                           <td className="px-4 py-2.5 font-medium flex items-center gap-2" style={{ color: qualified ? 'var(--text)' : 'var(--text-muted)' }}>
                             {qualified && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />}
-                            {team.team}
+                            {teamName(team.team, lang)}
                             <span className="text-xs opacity-50">{team.code}</span>
                           </td>
                           <td className="px-3 py-2.5 text-center" style={{ color: 'var(--text-muted)' }}>{team.played}</td>
@@ -156,7 +157,7 @@ export default function Stats() {
                     <td className="px-4 py-3 text-center font-bold" style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                     <td className="px-4 py-3 font-semibold" style={{ color: 'var(--text)' }}>{s.player}</td>
                     <td className="px-4 py-3" style={{ color: 'var(--text-muted)' }}>
-                      {s.team} <span className="opacity-50 text-xs">{s.code}</span>
+                      {teamName(s.team, lang)} <span className="opacity-50 text-xs">{s.code}</span>
                     </td>
                     <td className="px-4 py-3 text-center font-black text-lg" style={{ color: 'var(--accent)' }}>{s.goals}</td>
                   </tr>
