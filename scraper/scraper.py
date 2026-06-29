@@ -435,7 +435,7 @@ def _run_scrape(trigger: str) -> bool:
     threading.Thread(target=run, daemon=True).start()
     return True
 
-
+#TEST FUNCTION
 @_flask_app.route("/scrape", methods=["POST"])
 def trigger_scrape():
     if not _run_scrape("manuel"):
