@@ -291,6 +291,58 @@ def insert_matches(conn, matches: list[dict]) -> dict[tuple, int]:
     return match_id_map
 
 
+BOT_USERNAME = "Botnaru"
+BOT_EMAIL    = "botnaru@wcpredictor.local"
+
+
+def ensure_bot_user(conn) -> int:
+    """
+    Garantit l'existence de l'utilisateur Botnaru (le pronostiqueur IA), afin
+    qu'il figure au classement comme un joueur. Idempotent.
+    Botnaru est identifié partout par son username réservé ; le password_hash
+    est volontairement invalide → connexion impossible.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO users (username, email, password_hash, role)
+            VALUES (%s, %s, %s, 'user')
+            ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username
+            RETURNING id
+            """,
+            (BOT_USERNAME, BOT_EMAIL, "!"),
+        )
+        bot_id = cur.fetchone()[0]
+    conn.commit()
+    log.info("Utilisateur Botnaru garanti (id=%d).", bot_id)
+    return bot_id
+
+
+def sync_bot_predictions(conn, bot_user_id: int):
+    """
+    Recopie les pronostics du bot (table bot_predictions) dans la table
+    predictions au nom de Botnaru, pour qu'ils soient notés et classés comme
+    ceux des joueurs humains.
+    Un pronostic déjà noté (points_awarded non NULL) est figé : on n'y touche plus.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO predictions (user_id, match_id, pred_home, pred_away)
+            SELECT %s, bp.match_id, bp.pred_home, bp.pred_away
+            FROM bot_predictions bp
+            ON CONFLICT (user_id, match_id) DO UPDATE
+                SET pred_home = EXCLUDED.pred_home,
+                    pred_away = EXCLUDED.pred_away
+                WHERE predictions.points_awarded IS NULL
+            """,
+            (bot_user_id,),
+        )
+        synced = cur.rowcount
+    conn.commit()
+    log.info("%d pronostics Botnaru synchronisés.", synced)
+
+
 def score_predictions(conn):
     """
     Calcule les points de tous les pronostics dont le match est terminé.
@@ -375,7 +427,11 @@ def main():
         matches = extract_matches(raw_matches, team_id_map)
         insert_matches(conn, matches)
 
-        # Calcule les points des pronostics pour les matchs désormais terminés
+        # Botnaru (IA) : recopie ses pronostics pour qu'il concoure au classement
+        bot_id = ensure_bot_user(conn)
+        sync_bot_predictions(conn, bot_id)
+
+        # Calcule les points des pronostics (joueurs + Botnaru) pour les matchs terminés
         score_predictions(conn)
 
         players_data = extract_goals(raw_matches)

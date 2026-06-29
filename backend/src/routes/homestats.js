@@ -17,8 +17,8 @@ router.get('/', async (req, res) => {
         );
         const remaining_matches = Number(remainingRes.rows[0].cnt);
 
-        // 2. Meilleur joueur du classement
-        const leaderRes = await pool.query(`SELECT * FROM leaderboard LIMIT 1`);
+        // 2. Meilleur joueur du classement (hors Botnaru, qui est l'IA)
+        const leaderRes = await pool.query(`SELECT * FROM leaderboard WHERE username <> 'Botnaru' LIMIT 1`);
         const top_player = leaderRes.rows[0]
             ? { username: leaderRes.rows[0].username, total_points: Number(leaderRes.rows[0].total_points) }
             : null;

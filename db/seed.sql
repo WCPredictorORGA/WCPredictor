@@ -5,6 +5,17 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
+-- UTILISATEUR IA — Botnaru (le pronostiqueur automatique)
+-- Concourt au classement comme un joueur. Connexion impossible (hash invalide).
+-- Identifié partout dans l'app par son username réservé « Botnaru ».
+-- Ses pronostics sont recopiés de bot_predictions vers predictions par le
+-- scraper (sync_bot_predictions), puis notés comme ceux des joueurs humains.
+-- -----------------------------------------------------------------------------
+INSERT INTO users (username, email, password_hash, role)
+VALUES ('Botnaru', 'botnaru@wcpredictor.local', '!', 'user')
+ON CONFLICT (username) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
 -- ÉQUIPES (48)
 -- -----------------------------------------------------------------------------
 INSERT INTO teams (name, code, group_letter) VALUES
