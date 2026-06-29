@@ -12,4 +12,4 @@ React (Vite) · Node.js/Express · PostgreSQL · Python (scraper + IA) · Docker
 3. Frontend : http://localhost:5173 — API : http://localhost:3000
 
 ## Équipe
-Alexis Baubion (backend/infra) · Gwenael Bourcet (frontend) · Francois Manoury (data/IA)
+Alexis Baubion (infra/data/IA/frontend/backend) · Gwenael Bourcet (frontend/data/IA) · Francois Manoury (data/IA/frontend/backend)
