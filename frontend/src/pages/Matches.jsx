@@ -303,7 +303,7 @@ export default function Matches() {
                         {STATUS_LABEL[match.status]}
                       </span>
                       {match.status === 'scheduled' && isToday(match.match_datetime) && (
-                        <span className="animate-pulse text-xs font-black px-2 py-0.5 rounded-full w-20 text-center tracking-wide"
+                        <span className="animate-pulse text-xs font-black px-2.5 py-0.5 rounded-full text-center tracking-wide whitespace-nowrap"
                           style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.5)' }}>
                           {t('matches.today')}
                         </span>
