@@ -4,6 +4,7 @@ import { API, authFetch } from '../config.js';
 import { useLang } from '../LanguageContext.jsx';
 import { flagUrl } from '../flags.js';
 import { teamName } from '../teamNames.js';
+import BotnaruCard from '../components/BotnaruCard.jsx';
 
 const STAGE_ORDER = ['group', 'round32', 'round16', 'quarter', 'semi', 'final'];
 
@@ -262,6 +263,9 @@ export default function Matches() {
           )}
         </div>
       )}
+
+      {/* Carte de présentation Botnaru */}
+      <BotnaruCard />
 
       {/* Matchs par stage */}
       {STAGE_ORDER.filter((s) => grouped[s]).map((stage, stageIdx) => (
