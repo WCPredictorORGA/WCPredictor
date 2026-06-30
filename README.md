@@ -101,7 +101,11 @@ WCPredictor/
 │   │   ├── routes/          # auth, predictions, matches, leaderboard, stats,
 │   │   │                    # botpredictions, homestats, admin, users
 │   │   ├── middleware/      # auth (JWT), validation
+│   │   ├── services/
+│   │   │   └── botnaru.js   # logique métier Botnaru
 │   │   ├── scoring.js       # calcul des points (3 / 1 / 0)
+│   │   ├── db.js            # connexion PostgreSQL (pool)
+│   │   ├── scraper.js       # client HTTP vers le service scraper
 │   │   ├── app.js           # app Express (sécurité, CORS, rate-limit, routes)
 │   │   └── index.js         # point d'entrée serveur
 │   └── package.json
@@ -130,19 +134,30 @@ WCPredictor/
 **Prérequis** : Docker & Docker Compose.
 
 ```bash
+# 0. Cloner le dépôt
+git clone https://github.com/baubiez/WCPredictor.git
+cd WCPredictor
+
 # 1. Configurer l'environnement
-cp .env.example .env      # puis renseigner les valeurs (voir ci-dessous)
+cp .env.example .env      # les valeurs sont prêtes pour un usage local
 
 # 2. Lancer toute la stack
-docker compose up --build
+docker compose up --build -d
 
 # 3. (première fois) charger les données de base
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/seed.sql
+
+# 4. (première fois) appliquer la migration xG
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/001_add_xg_to_bot_predictions.sql
 ```
 
 - **Frontend** : http://localhost:5173
 - **API** : http://localhost:3000
 - **Générer les pronostics IA** (optionnel) : `docker compose run --rm ai-service`
+
+> **Compte admin par défaut** (créé par le seed) :
+> - Identifiant : `admin@wcpredictor.local`
+> - Mot de passe : `Admin1234!`
 
 ---
 
@@ -155,10 +170,12 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < d
 | `POSTGRES_USER` | Utilisateur PostgreSQL |
 | `POSTGRES_PASSWORD` | Mot de passe PostgreSQL |
 | `POSTGRES_DB` | Nom de la base |
-| `DATABASE_URL` | URL de connexion complète (`postgresql://user:pass@db:5432/base`) |
+| `DATABASE_URL` | URL de connexion complète — utiliser `db` (service Docker) et non `localhost` · ex. `postgresql://wcp:wcp_password@db:5432/wcp_db` |
 | `JWT_SECRET` | Secret de signature des jetons JWT |
 | `CORS_ORIGIN` | Origine(s) autorisée(s) (ex. `http://localhost:5173`) |
 | `VITE_API_URL` | URL de l'API consommée par le frontend |
+| `SCRAPER_HOUR` | Heure du scraping quotidien (défaut : `10`) |
+| `SCRAPER_TZ` | Fuseau horaire du planificateur (défaut : `Europe/Paris`) |
 
 ---
 
@@ -170,7 +187,7 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < d
 | `backend` | `wcp_backend` | 3000 | API Express |
 | `frontend` | `wcp_frontend` | 5173 | SPA React (dev) |
 | `frontend-prod` | `wcp_frontend_prod` | 80 | Build prod (profil `prod`) |
-| `scraper` | `wcp_scraper` | 5001 | Import de données + cron 10h00 |
+| `scraper` | `wcp_scraper` | 5001 (interne) | Import de données + cron 10h00 |
 | `ai-service` | `wcp_ai` | — | Modèle de Poisson (profil `tools`, lancement manuel) |
 
 ---
@@ -192,7 +209,7 @@ Base : `/api`
 | `GET` / `POST` | `/predictions` | Lire / soumettre ses pronostics | authentifié |
 | `GET` | `/leaderboard` | Classement général | public |
 | `GET` | `/stats/scorers` · `/stats/standings` | Buteurs · classement par groupe | public |
-| `GET` | `/bot-predictions` | Pronostics de Botnaru (à venir) | public |
+| `GET` | `/bot-predictions` | Pronostics de Botnaru | public |
 | `GET` | `/home-stats` | KPIs page d'accueil | public |
 | `POST` | `/admin/scrape` · `GET` `/admin/scrape/status` | Déclencher / suivre le scraping | admin |
 
@@ -212,19 +229,21 @@ Tables principales (cf. [`db/init.sql`](db/init.sql)) :
 
 ### Migrations
 
-Les migrations incrémentales (à jouer **une fois** sur une base existante, ex. Render) :
+| Migration | Effet | Local (fresh) | Render (existant) |
+|---|---|---|---|
+| `001` | Ajoute les colonnes xG à `bot_predictions` | ✅ nécessaire | ✅ nécessaire |
+| `002` | Crée le compte **Botnaru** (connexion désactivée) | ⬜ déjà dans seed.sql | ✅ nécessaire |
+| `003` | Donne à Botnaru un pronostic de démarrage (1 score exact → 3 pts) | ⬜ optionnel | ✅ nécessaire |
 
 ```bash
+# Setup local — uniquement la migration 001 est requise (voir Démarrage rapide)
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/001_add_xg_to_bot_predictions.sql
+
+# Render (base existante sans seed) — jouer les 3 dans l'ordre
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/001_add_xg_to_bot_predictions.sql
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/002_botnaru_user.sql
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/003_botnaru_test_score_exact.sql
 ```
-
-| Migration | Effet |
-|---|---|
-| `001` | Ajoute les colonnes xG à `bot_predictions` |
-| `002` | Crée le compte **Botnaru** (connexion désactivée) |
-| `003` | Donne à Botnaru un pronostic de démarrage (1 score exact → 3 pts) |
 
 ---
 

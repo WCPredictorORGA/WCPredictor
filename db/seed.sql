@@ -5,6 +5,14 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
+-- UTILISATEUR ADMIN — compte de démonstration / évaluation
+-- Identifiants : admin / Admin1234!
+-- -----------------------------------------------------------------------------
+INSERT INTO users (username, email, password_hash, role)
+VALUES ('admin', 'admin@wcpredictor.local', '$2b$12$1J6iOw69I9ycRFudBsYHHO6TACdZHLfWanMabTUqIDfM1yAsux84m', 'admin')
+ON CONFLICT (username) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
 -- UTILISATEUR IA — Botnaru (le pronostiqueur automatique)
 -- Concourt au classement comme un joueur. Connexion impossible (hash invalide).
 -- Identifié partout dans l'app par son username réservé « Botnaru ».
