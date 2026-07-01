@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const authenticate = require('../middleware/auth');
 const { runScrape } = require('../scraper');
 const pool = require('../db');
@@ -129,6 +130,99 @@ router.post('/set-role', authenticate, async (req, res) => {
             return res.status(404).json({ error: `Utilisateur "${username}" introuvable` });
         }
         res.json({ message: `✓ ${result.rows[0].username} est maintenant ${role}`, user: result.rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/users — liste tous les comptes (hors Botnaru)
+router.get('/users', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Réservé aux administrateurs' });
+    }
+    try {
+        const result = await pool.query(
+            `SELECT id, username, email, role, created_at
+             FROM users
+             WHERE username != 'Botnaru'
+             ORDER BY created_at ASC`
+        );
+        res.json({ users: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/admin/users/:id — modifie username, email et/ou mot de passe
+router.put('/users/:id', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Réservé aux administrateurs' });
+    }
+    const targetId = parseInt(req.params.id, 10);
+    if (isNaN(targetId)) return res.status(400).json({ error: 'ID invalide' });
+
+    const { username, email, password } = req.body;
+    if (!username && !email && !password) {
+        return res.status(400).json({ error: 'Aucune modification fournie' });
+    }
+
+    try {
+        const check = await pool.query('SELECT username FROM users WHERE id = $1', [targetId]);
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Utilisateur introuvable' });
+        if (check.rows[0].username === 'Botnaru') {
+            return res.status(403).json({ error: 'Le compte Botnaru ne peut pas être modifié' });
+        }
+
+        const cols = [];
+        const vals = [];
+        let i = 1;
+
+        if (username) { cols.push(`username = $${i++}`); vals.push(username.trim()); }
+        if (email)    { cols.push(`email = $${i++}`);    vals.push(email.trim().toLowerCase()); }
+        if (password) {
+            if (password.length < 8) return res.status(400).json({ error: 'Mot de passe trop court (8 caractères min.)' });
+            const hash = await bcrypt.hash(password, 12);
+            cols.push(`password_hash = $${i++}`);
+            vals.push(hash);
+        }
+
+        vals.push(targetId);
+        const result = await pool.query(
+            `UPDATE users SET ${cols.join(', ')} WHERE id = $${i} RETURNING id, username, email, role`,
+            vals
+        );
+        res.json({ message: '✓ Compte mis à jour', user: result.rows[0] });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ error: "Ce nom d'utilisateur ou email est déjà utilisé" });
+        }
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/admin/users/:id — supprime un compte
+router.delete('/users/:id', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Réservé aux administrateurs' });
+    }
+    const targetId = parseInt(req.params.id, 10);
+    if (isNaN(targetId)) return res.status(400).json({ error: 'ID invalide' });
+    if (targetId === req.user.id) {
+        return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+    }
+
+    try {
+        const check = await pool.query('SELECT username FROM users WHERE id = $1', [targetId]);
+        if (check.rows.length === 0) return res.status(404).json({ error: 'Utilisateur introuvable' });
+        if (check.rows[0].username === 'Botnaru') {
+            return res.status(403).json({ error: 'Le compte Botnaru ne peut pas être supprimé' });
+        }
+
+        await pool.query('DELETE FROM users WHERE id = $1', [targetId]);
+        res.json({ message: '✓ Compte supprimé' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });

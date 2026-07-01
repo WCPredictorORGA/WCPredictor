@@ -28,6 +28,11 @@ export default function Admin() {
   const [roleUsername, setRoleUsername] = useState('');
   const [roleFlash, setRoleFlash] = useState(null);
 
+  const [users, setUsers] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ username: '', email: '', password: '' });
+  const [modFlash, setModFlash] = useState(null);
+
   useEffect(() => {
     if (!user || user.role !== 'admin') navigate('/');
   }, []);
@@ -38,6 +43,63 @@ export default function Admin() {
       .then((d) => setMatches(d.matches || []))
       .catch(() => {});
   }, []);
+
+  const loadUsers = () =>
+    authFetch(`${API}/api/admin/users`)
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users || []))
+      .catch(() => {});
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const handleEditStart = (u) => {
+    setEditingId(u.id);
+    setEditForm({ username: u.username, email: u.email, password: '' });
+    setModFlash(null);
+  };
+
+  const handleEditSave = async (id) => {
+    const orig = users.find((u) => u.id === id);
+    const body = {};
+    if (editForm.username !== orig.username) body.username = editForm.username;
+    if (editForm.email    !== orig.email)    body.email    = editForm.email;
+    if (editForm.password)                   body.password = editForm.password;
+
+    if (Object.keys(body).length === 0) { setEditingId(null); return; }
+
+    try {
+      const res  = await authFetch(`${API}/api/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      setModFlash({ text: data.message, isError: false });
+      setEditingId(null);
+      loadUsers();
+    } catch (err) {
+      setModFlash({ text: err.message, isError: true });
+    } finally {
+      setTimeout(() => setModFlash(null), 5000);
+    }
+  };
+
+  const handleDelete = async (id, username) => {
+    const msg = t('admin.moderation.confirm_delete').replace('{username}', username);
+    if (!window.confirm(msg)) return;
+    try {
+      const res  = await authFetch(`${API}/api/admin/users/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      setModFlash({ text: data.message, isError: false });
+      if (editingId === id) setEditingId(null);
+      loadUsers();
+    } catch (err) {
+      setModFlash({ text: err.message, isError: true });
+    } finally {
+      setTimeout(() => setModFlash(null), 5000);
+    }
+  };
 
   // Récupère le statut du scraper au montage
   useEffect(() => {
@@ -311,6 +373,125 @@ export default function Admin() {
           <p className={`text-xs mt-2 font-semibold ${roleFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
             {roleFlash.text}
           </p>
+        )}
+      </div>
+
+      {/* Section modération */}
+      <div className="card p-4 mb-6">
+        <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>{t('admin.moderation.title')}</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>{t('admin.moderation.desc')}</p>
+
+        {modFlash && (
+          <p className={`text-xs mb-3 font-semibold ${modFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
+            {modFlash.text}
+          </p>
+        )}
+
+        {users.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('admin.moderation.empty')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-left text-xs" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                  <th className="pb-2 pr-4 font-medium">{t('admin.moderation.col.username')}</th>
+                  <th className="pb-2 pr-4 font-medium">{t('admin.moderation.col.email')}</th>
+                  <th className="pb-2 pr-4 font-medium">{t('admin.moderation.col.role')}</th>
+                  <th className="pb-2 pr-4 font-medium hidden md:table-cell">{t('admin.moderation.col.created')}</th>
+                  <th className="pb-2 font-medium text-right">{t('admin.moderation.col.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  editingId === u.id ? (
+                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td colSpan={5} className="py-3">
+                        <div className="flex flex-wrap gap-2 items-end">
+                          <div className="flex flex-col gap-1 min-w-32">
+                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin.moderation.field.username')}</label>
+                            <input
+                              type="text"
+                              value={editForm.username}
+                              onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+                              className="text-sm px-2 py-1 rounded"
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1 min-w-44">
+                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin.moderation.field.email')}</label>
+                            <input
+                              type="email"
+                              value={editForm.email}
+                              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                              className="text-sm px-2 py-1 rounded"
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1 min-w-44">
+                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('admin.moderation.field.password')}</label>
+                            <input
+                              type="password"
+                              value={editForm.password}
+                              placeholder="••••••••"
+                              onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                              className="text-sm px-2 py-1 rounded"
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                            />
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => handleEditSave(u.id)}
+                              className="btn btn-primary text-xs px-3 py-1.5">
+                              {t('admin.moderation.btn.save')}
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="btn text-xs px-3 py-1.5"
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                              {t('admin.moderation.btn.cancel')}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td className="py-2.5 pr-4 font-medium" style={{ color: 'var(--text)' }}>{u.username}</td>
+                      <td className="py-2.5 pr-4 text-xs" style={{ color: 'var(--text-muted)' }}>{u.email}</td>
+                      <td className="py-2.5 pr-4">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          u.role === 'admin'
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-blue-500/10 text-blue-400'
+                        }`}>
+                          {u.role === 'admin' ? t('admin.moderation.badge.admin') : t('admin.moderation.badge.user')}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 text-xs hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>
+                        {new Date(u.created_at).toLocaleDateString(LOCALE_MAP[lang] || 'fr-FR')}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleEditStart(u)}
+                            className="btn text-xs px-3 py-1"
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                            {t('admin.moderation.btn.edit')}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(u.id, u.username)}
+                            className="btn text-xs px-3 py-1"
+                            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>
+                            {t('admin.moderation.btn.delete')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

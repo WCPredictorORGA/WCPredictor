@@ -31,7 +31,7 @@ app.use(cors({
         cb(Object.assign(new Error('CORS_BLOCKED'), { status: 403 }));
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
