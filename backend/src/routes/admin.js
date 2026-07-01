@@ -229,6 +229,57 @@ router.delete('/users/:id', authenticate, async (req, res) => {
     }
 });
 
+// POST /api/admin/predictions — insère ou écrase un pronostic pour n'importe quel joueur sur un match terminé
+router.post('/predictions', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Réservé aux administrateurs' });
+    }
+
+    const uid = parseInt(req.body.user_id,  10);
+    const mid = parseInt(req.body.match_id, 10);
+    const ph  = parseInt(req.body.pred_home, 10);
+    const pa  = parseInt(req.body.pred_away, 10);
+
+    if ([uid, mid, ph, pa].some(isNaN) || ph < 0 || pa < 0 || ph > 99 || pa > 99) {
+        return res.status(400).json({ error: 'Paramètres invalides' });
+    }
+
+    try {
+        const matchRes = await pool.query(
+            'SELECT status, home_score, away_score FROM matches WHERE id = $1',
+            [mid]
+        );
+        if (matchRes.rows.length === 0) return res.status(404).json({ error: 'Match introuvable' });
+
+        const { status, home_score, away_score } = matchRes.rows[0];
+        if (status !== 'finished' || home_score === null) {
+            return res.status(400).json({ error: "Ce match n'a pas encore de résultat officiel" });
+        }
+
+        const { computePoints } = require('../scoring');
+        const points = computePoints(ph, pa, home_score, away_score);
+
+        const result = await pool.query(
+            `INSERT INTO predictions (user_id, match_id, pred_home, pred_away, points_awarded)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (user_id, match_id) DO UPDATE
+               SET pred_home      = EXCLUDED.pred_home,
+                   pred_away      = EXCLUDED.pred_away,
+                   points_awarded = EXCLUDED.points_awarded
+             RETURNING id, pred_home, pred_away, points_awarded`,
+            [uid, mid, ph, pa, points]
+        );
+
+        res.json({
+            message: `✓ Pronostic inséré — ${points} pt${points !== 1 ? 's' : ''}`,
+            prediction: result.rows[0],
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/admin/scrape/status — état du dernier scraping (admin uniquement)
 router.get('/scrape/status', authenticate, (req, res) => {
     if (req.user.role !== 'admin') {

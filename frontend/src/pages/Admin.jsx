@@ -33,6 +33,9 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ username: '', email: '', password: '' });
   const [modFlash, setModFlash] = useState(null);
 
+  const [predForm, setPredForm] = useState({ user_id: '', match_id: '', pred_home: '', pred_away: '' });
+  const [predFlash, setPredFlash] = useState(null);
+
   useEffect(() => {
     if (!user || user.role !== 'admin') navigate('/');
   }, []);
@@ -213,6 +216,31 @@ export default function Admin() {
     }
   };
 
+  const handlePredSubmit = async () => {
+    const { user_id, match_id, pred_home, pred_away } = predForm;
+    if (!user_id || !match_id || pred_home === '' || pred_away === '') return;
+    setPredFlash(null);
+    try {
+      const res  = await authFetch(`${API}/api/admin/predictions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id:   parseInt(user_id, 10),
+          match_id:  parseInt(match_id, 10),
+          pred_home: parseInt(pred_home, 10),
+          pred_away: parseInt(pred_away, 10),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+      setPredFlash({ text: data.message, isError: false });
+      setPredForm((f) => ({ ...f, pred_home: '', pred_away: '' }));
+    } catch (err) {
+      setPredFlash({ text: err.message, isError: true });
+    } finally {
+      setTimeout(() => setPredFlash(null), 6000);
+    }
+  };
+
   const handleScore = (matchId, side, value) => {
     setScores((prev) => ({
       ...prev,
@@ -372,6 +400,83 @@ export default function Admin() {
         {roleFlash && (
           <p className={`text-xs mt-2 font-semibold ${roleFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
             {roleFlash.text}
+          </p>
+        )}
+      </div>
+
+      {/* Section pronostics manuels */}
+      <div className="card p-4 mb-6">
+        <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>{t('admin.pred.title')}</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{t('admin.pred.desc')}</p>
+
+        <div className="flex flex-wrap gap-3 items-end">
+          {/* Sélecteur joueur */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('admin.pred.player')}</label>
+            <select
+              value={predForm.user_id}
+              onChange={(e) => setPredForm((f) => ({ ...f, user_id: e.target.value }))}
+              className="text-sm px-3 py-2 rounded-lg min-w-44"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+              <option value="">{t('admin.pred.select_player')}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.username}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sélecteur match terminé */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('admin.pred.match')}</label>
+            <select
+              value={predForm.match_id}
+              onChange={(e) => setPredForm((f) => ({ ...f, match_id: e.target.value }))}
+              className="text-sm px-3 py-2 rounded-lg min-w-64"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+              <option value="">{t('admin.pred.select_match')}</option>
+              {finished.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.home_team} {m.home_score}–{m.away_score} {m.away_team}
+                  {' ('}
+                  {new Date(m.match_datetime).toLocaleDateString(LOCALE_MAP[lang] || 'fr-FR', { day: '2-digit', month: '2-digit' })}
+                  {')'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Score pronostic */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('admin.pred.score_home')}</label>
+            <input
+              type="number" min="0" max="99" placeholder="0"
+              value={predForm.pred_home}
+              onChange={(e) => setPredForm((f) => ({ ...f, pred_home: e.target.value }))}
+              className="score-box" />
+          </div>
+
+          <span className="font-black pb-1" style={{ color: 'var(--text-muted)' }}>:</span>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('admin.pred.score_away')}</label>
+            <input
+              type="number" min="0" max="99" placeholder="0"
+              value={predForm.pred_away}
+              onChange={(e) => setPredForm((f) => ({ ...f, pred_away: e.target.value }))}
+              className="score-box" />
+          </div>
+
+          <button
+            onClick={handlePredSubmit}
+            disabled={!predForm.user_id || !predForm.match_id || predForm.pred_home === '' || predForm.pred_away === ''}
+            className="btn btn-primary text-sm px-4 py-2">
+            {t('admin.pred.btn')}
+          </button>
+        </div>
+
+        {predFlash && (
+          <p className={`text-xs mt-3 font-semibold ${predFlash.isError ? 'text-red-400' : 'text-green-400'}`}>
+            {predFlash.text}
           </p>
         )}
       </div>
